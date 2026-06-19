@@ -1,4 +1,4 @@
-import { NavLink } from "react-router-dom";
+import { Link, NavLink } from "react-router-dom";
 import { WalletConnectionInfo } from "../WalletConnectionInfo/WalletConnectionInfo";
 import { colors, fonts, CONTENT_MAX } from "../../theme";
 
@@ -30,13 +30,15 @@ export const AppHeader = () => {
           alignItems: "stretch",
         }}
       >
-        <div
+        <Link
+          to="/"
           style={{
             display: "flex",
             alignItems: "center",
             gap: 11,
             padding: "15px 22px",
             borderRight: `1px solid ${colors.border}`,
+            textDecoration: "none",
           }}
         >
           <img
@@ -56,10 +58,10 @@ export const AppHeader = () => {
           >
             MADVOTES
           </span>
-        </div>
+        </Link>
 
         <nav style={{ flex: 1, display: "flex", alignItems: "center" }}>
-          <NavLink to="/" style={({ isActive }) => navLink(isActive)} end>
+          <NavLink to="/experiments" style={({ isActive }) => navLink(isActive)}>
             EXPERIMENTS
           </NavLink>
           <NavLink to="/notebook" style={({ isActive }) => navLink(isActive)}>

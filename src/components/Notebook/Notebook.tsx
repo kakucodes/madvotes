@@ -6,9 +6,19 @@ import {
   PROVIDER_CHAIN,
   useMadvotesSigningClient,
 } from "../../hooks/useMadvotes";
-import { colors, fonts, outcomeColor, outcomeLabel, CONTENT_MAX } from "../../theme";
+import {
+  colors,
+  fonts,
+  outcomeColor,
+  outcomeLabel,
+  CONTENT_MAX,
+} from "../../theme";
 import { useMadvotesGetClaimQuery } from "../../codegen/Madvotes.react-query";
-import { MarketStatus, Outcome, OutcomeAccum } from "../../codegen/Madvotes.types";
+import {
+  MarketStatus,
+  Outcome,
+  OutcomeAccum,
+} from "../../codegen/Madvotes.types";
 import { MadvotesClient } from "../../codegen/Madvotes.client";
 import { formatAtom, timeLeft } from "../../utils/format";
 import { useGetUserPositions } from "../../hooks/useGetUserPositions";
@@ -50,7 +60,9 @@ const ClaimSection = ({
   position: UserPosition;
   signingClient: MadvotesClient | undefined;
 }) => {
-  const [txStatus, setTxStatus] = useState<"idle" | "signing" | "success" | "error">("idle");
+  const [txStatus, setTxStatus] = useState<
+    "idle" | "signing" | "success" | "error"
+  >("idle");
   const [errMsg, setErrMsg] = useState("");
   const reactQueryClient = useQueryClient();
 
@@ -75,7 +87,14 @@ const ClaimSection = ({
 
   if (isLoading) {
     return (
-      <div style={{ fontFamily: fonts.mono, fontSize: 12, color: colors.muted, marginTop: 10 }}>
+      <div
+        style={{
+          fontFamily: fonts.mono,
+          fontSize: 12,
+          color: colors.muted,
+          marginTop: 10,
+        }}
+      >
         Checking claim…
       </div>
     );
@@ -99,11 +118,25 @@ const ClaimSection = ({
     );
   }
 
-  if (!claim || !claim.settled || claim.already_claimed || claim.claimable === "0") {
+  if (
+    !claim ||
+    !claim.settled ||
+    claim.already_claimed ||
+    claim.claimable === "0"
+  ) {
     // Settled but no payout (lost or already claimed)
     return (
-      <div style={{ fontFamily: fonts.mono, fontSize: 12, color: colors.muted, marginTop: 10 }}>
-        {claim?.already_claimed ? "✓ Already collected." : "✗ No payout — better luck next time."}
+      <div
+        style={{
+          fontFamily: fonts.mono,
+          fontSize: 12,
+          color: colors.muted,
+          marginTop: 10,
+        }}
+      >
+        {claim?.already_claimed
+          ? "✓ Already collected."
+          : "✗ No payout — better luck next time."}
       </div>
     );
   }
@@ -111,7 +144,14 @@ const ClaimSection = ({
   return (
     <div style={{ marginTop: 12 }}>
       {txStatus === "error" && (
-        <div style={{ fontFamily: fonts.mono, fontSize: 11, color: colors.rejected, marginBottom: 8 }}>
+        <div
+          style={{
+            fontFamily: fonts.mono,
+            fontSize: 11,
+            color: colors.rejected,
+            marginBottom: 8,
+          }}
+        >
           {errMsg}
         </div>
       )}
@@ -138,7 +178,15 @@ const ClaimSection = ({
             }}
           >
             {formatAtom(claim.claimable)}{" "}
-            <span style={{ fontFamily: fonts.mono, fontSize: 13, color: colors.muted }}>ATOM</span>
+            <span
+              style={{
+                fontFamily: fonts.mono,
+                fontSize: 13,
+                color: colors.muted,
+              }}
+            >
+              ATOM
+            </span>
           </div>
         </div>
         <button
@@ -239,12 +287,25 @@ const NotebookPositionCard = ({
         </div>
 
         {/* User's bet positions */}
-        <FieldLabel>YOUR CALL{position.positions.length > 1 ? "S" : ""}</FieldLabel>
-        <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 14 }}>
+        <FieldLabel>
+          YOUR CALL{position.positions.length > 1 ? "S" : ""}
+        </FieldLabel>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 6,
+            marginBottom: 14,
+          }}
+        >
           {position.positions.map((pos, i) => {
             const outcome = pos.outcome as Outcome;
-            const isWinningCall = settled && position.winning_outcome === outcome;
-            const isLosingCall = settled && !!position.winning_outcome && position.winning_outcome !== outcome;
+            const isWinningCall =
+              settled && position.winning_outcome === outcome;
+            const isLosingCall =
+              settled &&
+              !!position.winning_outcome &&
+              position.winning_outcome !== outcome;
             return (
               <div
                 key={i}
@@ -253,7 +314,9 @@ const NotebookPositionCard = ({
                   justifyContent: "space-between",
                   alignItems: "center",
                   border: `1px solid ${isWinningCall ? outcomeColor[outcome] : colors.borderSoft}`,
-                  background: isWinningCall ? `${outcomeColor[outcome]}12` : "transparent",
+                  background: isWinningCall
+                    ? `${outcomeColor[outcome]}12`
+                    : "transparent",
                   padding: "10px 14px",
                   opacity: isLosingCall ? 0.45 : 1,
                 }}
@@ -277,7 +340,9 @@ const NotebookPositionCard = ({
                     {outcomeLabel[outcome]}
                   </span>
                 </div>
-                <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+                <div
+                  style={{ display: "flex", alignItems: "baseline", gap: 6 }}
+                >
                   <span
                     style={{
                       fontFamily: fonts.display,
@@ -288,11 +353,25 @@ const NotebookPositionCard = ({
                   >
                     {formatAtom(pos.net)}
                   </span>
-                  <span style={{ fontFamily: fonts.mono, fontSize: 11, color: colors.muted }}>
+                  <span
+                    style={{
+                      fontFamily: fonts.mono,
+                      fontSize: 11,
+                      color: colors.muted,
+                    }}
+                  >
                     ATOM
                   </span>
                   {isWinningCall && (
-                    <span style={{ color: colors.passed, fontSize: 13, marginLeft: 2 }}>✓</span>
+                    <span
+                      style={{
+                        color: colors.passed,
+                        fontSize: 13,
+                        marginLeft: 2,
+                      }}
+                    >
+                      ✓
+                    </span>
                   )}
                 </div>
               </div>
@@ -326,7 +405,14 @@ const NotebookPositionCard = ({
               signingClient={userWon ? signingClient : undefined}
             />
             {!userWon && !signingClient && (
-              <div style={{ fontFamily: fonts.mono, fontSize: 12, color: colors.muted, marginTop: 10 }}>
+              <div
+                style={{
+                  fontFamily: fonts.mono,
+                  fontSize: 12,
+                  color: colors.muted,
+                  marginTop: 10,
+                }}
+              >
                 ✗ No payout — better luck next time.
               </div>
             )}
@@ -377,8 +463,15 @@ export const Notebook = () => {
           MY NOTEBOOK
         </div>
         {isWalletConnected && userPositions.length > 0 && (
-          <div style={{ fontFamily: fonts.mono, fontSize: 12, color: colors.muted }}>
-            {userPositions.length} position{userPositions.length !== 1 ? "s" : ""}
+          <div
+            style={{
+              fontFamily: fonts.mono,
+              fontSize: 12,
+              color: colors.muted,
+            }}
+          >
+            {userPositions.length} position
+            {userPositions.length !== 1 ? "s" : ""}
           </div>
         )}
       </div>
@@ -432,7 +525,7 @@ export const Notebook = () => {
           </div>
           <div style={{ marginTop: 16 }}>
             <Link
-              to="/"
+              to="/experiments"
               style={{
                 fontFamily: fonts.label,
                 fontSize: 10,

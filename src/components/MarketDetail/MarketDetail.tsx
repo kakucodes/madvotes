@@ -32,7 +32,7 @@ export const MarketDetail = () => {
   const poolTotal = pools.reduce((sum, p) => sum + Number(p.net), 0);
 
   const crumb = (
-    <Link to="/" style={{ fontFamily: fonts.mono, fontSize: 12, color: colors.muted }}>
+    <Link to="/experiments" style={{ fontFamily: fonts.mono, fontSize: 12, color: colors.muted }}>
       ← EXPERIMENTS
     </Link>
   );
