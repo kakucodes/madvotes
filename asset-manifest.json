@@ -1,18 +1,18 @@
 {
   "files": {
     "main.css": "/madvotes/static/css/main.9c35b0bf.css",
-    "main.js": "/madvotes/static/js/main.4f07cfa7.js",
+    "main.js": "/madvotes/static/js/main.fdf9c5f2.js",
     "static/js/228.c672d949.chunk.js": "/madvotes/static/js/228.c672d949.chunk.js",
     "static/js/592.7eb65534.chunk.js": "/madvotes/static/js/592.7eb65534.chunk.js",
     "static/media/axios.cjs": "/madvotes/static/media/axios.5cdcf59e4b6a285aeb16.cjs",
     "index.html": "/madvotes/index.html",
     "main.9c35b0bf.css.map": "/madvotes/static/css/main.9c35b0bf.css.map",
-    "main.4f07cfa7.js.map": "/madvotes/static/js/main.4f07cfa7.js.map",
+    "main.fdf9c5f2.js.map": "/madvotes/static/js/main.fdf9c5f2.js.map",
     "228.c672d949.chunk.js.map": "/madvotes/static/js/228.c672d949.chunk.js.map",
     "592.7eb65534.chunk.js.map": "/madvotes/static/js/592.7eb65534.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.9c35b0bf.css",
-    "static/js/main.4f07cfa7.js"
+    "static/js/main.fdf9c5f2.js"
   ]
 }
