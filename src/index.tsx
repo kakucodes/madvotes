@@ -1,5 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
+import { HashRouter } from "react-router-dom";
 import "./index.css";
 import App from "./App";
 import reportWebVitals from "./reportWebVitals";
@@ -9,10 +10,13 @@ const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement
 );
 
+// HashRouter keeps deep links working on GitHub Pages without server rewrites.
 root.render(
   <React.StrictMode>
     <Providers>
-      <App />
+      <HashRouter>
+        <App />
+      </HashRouter>
     </Providers>
   </React.StrictMode>
 );

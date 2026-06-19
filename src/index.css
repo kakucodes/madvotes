@@ -1,13 +1,94 @@
+/* ============================================================
+   MadVotes — Cosmos Violet design foundation
+   Tokens mirror the hi-fi build (Route C). Component styling
+   references these CSS variables (or src/theme.ts in TSX).
+   ============================================================ */
+:root {
+  /* surfaces */
+  --mv-bg: #0b0a16; /* app / panel background */
+  --mv-panel: #0d0b1a; /* raised panel (modals) */
+  --mv-border: #2a2542; /* hairline border */
+  --mv-border-soft: #1e1a30; /* softer inner divider */
+  --mv-border-faint: #14101f; /* faintest divider */
+
+  /* accent */
+  --mv-violet: #8b6cff;
+  --mv-violet-light: #a78bff;
+
+  /* text */
+  --mv-text: #ffffff;
+  --mv-text-dim: #b3adc9;
+  --mv-text-soft: #8780a0;
+  --mv-muted: #6b6585;
+
+  /* outcomes */
+  --mv-passed: #4eef5a;
+  --mv-rejected: #ff6060;
+  --mv-veto: #d36bff;
+  --mv-quorum: #7d88a3;
+
+  /* type */
+  --mv-font-display: "Pixelify Sans", sans-serif; /* headings */
+  --mv-font-label: "Silkscreen", monospace; /* tiny caps labels */
+  --mv-font-mono: "Space Mono", monospace; /* data / body */
+  --mv-font-hand: "Caveat", cursive; /* handwritten accents */
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  padding: 0;
+  background: var(--mv-bg);
+  color: var(--mv-text);
+  font-family: var(--mv-font-mono);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+/* pixel-art assets render crisp, not blurred, when scaled */
+.mv-pixel {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+@keyframes mv-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+@keyframes mv-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-7px);
+  }
+}
+@keyframes mv-blink {
+  0%,
+  92%,
+  100% {
+    opacity: 1;
+  }
+  94% {
+    opacity: 0.45;
+  }
 }

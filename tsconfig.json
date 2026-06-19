@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "ES6",
+    "target": "ES2020",
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
@@ -16,5 +16,16 @@
     "noEmit": true,
     "jsx": "react-jsx"
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "test/**/*.ts"]
+  "include": ["src/**/*.ts", "src/**/*.tsx", "test/**/*.ts"],
+  // Unused ts-codegen output that doesn't typecheck in our dependency set:
+  //  - contracts-context.tsx + bundle.ts: the "contracts provider" flavor,
+  //    which isn't null-safe under `strict` (we use the query client directly).
+  //  - Madvotes.message-builder.ts: needs type-fest's CamelCasedProperties, a
+  //    dep we don't otherwise pull; add `type-fest` if you start using it.
+  // All three are only reachable via bundle.ts, which nothing in src imports.
+  "exclude": [
+    "src/codegen/bundle.ts",
+    "src/codegen/contracts-context.tsx",
+    "src/codegen/Madvotes.message-builder.ts"
+  ]
 }

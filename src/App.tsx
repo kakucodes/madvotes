@@ -1,31 +1,22 @@
-import { Box, Page, PageContent } from "grommet";
+import { Route, Routes } from "react-router-dom";
 import { AppHeader } from "./components/AppHeader/AppHeader";
-
-import { TransferForm } from "./components/TransferForm/TransferForm";
-import { TxHistorySidebar } from "./components/TxHistorySidebar/TxHistorySidebar";
-import { useFetchChains } from "./hooks/useFetchChains";
+import { LiveExperiments } from "./components/LiveExperiments/LiveExperiments";
+import { MarketDetail } from "./components/MarketDetail/MarketDetail";
+import { Notebook } from "./components/Notebook/Notebook";
+import { Docs } from "./components/Docs/Docs";
+import { colors } from "./theme";
 
 function App() {
-  const { data: chains } = useFetchChains(false);
-
   return (
-    <Page fill>
+    <div style={{ minHeight: "100vh", background: colors.bg }}>
       <AppHeader />
-      <PageContent fill direction="row">
-        <Box
-          fill
-          justify="center"
-          align="center"
-          alignContent="center"
-          pad="medium"
-        >
-          <Box width={{ max: "750px" }}>
-            {chains ? <TransferForm chains={chains} /> : <Box>Loading...</Box>}
-          </Box>
-        </Box>
-        <TxHistorySidebar />
-      </PageContent>
-    </Page>
+      <Routes>
+        <Route path="/" element={<LiveExperiments />} />
+        <Route path="/experiment/:proposalId" element={<MarketDetail />} />
+        <Route path="/notebook" element={<Notebook />} />
+        <Route path="/docs" element={<Docs />} />
+      </Routes>
+    </div>
   );
 }
 

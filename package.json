@@ -1,17 +1,17 @@
 {
-  "name": "warm-route-ui",
+  "name": "madvotes-spa",
   "version": "0.1.0",
-  "homepage": "https://kakucodes.github.io/route-warmer",
+  "homepage": "https://kakucodes.github.io/madvotes",
   "private": true,
   "dependencies": {
+    "@cosmjs/cosmwasm-stargate": "^0.32.2",
     "@cosmjs/stargate": "^0.32.2",
     "@cosmos-kit/cosmostation": "^2.6.10",
     "@cosmos-kit/keplr": "^2.6.9",
     "@cosmos-kit/leap": "^2.6.9",
     "@cosmos-kit/react": "^2.10.10",
-    "@hookform/resolvers": "^3.3.4",
     "@interchain-ui/react": "^1.21.18",
-    "@tanstack/react-query": "^5.20.1",
+    "@tanstack/react-query": "^4.36.1",
     "@testing-library/jest-dom": "^5.17.0",
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",
@@ -19,24 +19,14 @@
     "@types/node": "^20.11.16",
     "@types/react": "^18.2.55",
     "@types/react-dom": "^18.2.18",
-    "axios": "^1.6.7",
-    "bech32": "^2.0.0",
     "chain-registry": "^1.28.0",
-    "grommet": "^2.35.0",
-    "grommet-icons": "^4.12.0",
-    "openapi-typescript-fetch": "^1.1.3",
-    "osmojs": "^16.9.0",
     "path-browserify": "^1.0.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-hook-form": "^7.50.1",
-    "react-hotkeys-hook": "^4.5.0",
+    "react-router-dom": "^6",
     "react-scripts": "5.0.1",
-    "styled-components": "^5.3.11",
-    "ts-pattern": "^5.0.6",
     "typescript": "^5.3.3",
-    "web-vitals": "^2.1.4",
-    "yup": "^1.3.3"
+    "web-vitals": "^2.1.4"
   },
   "scripts": {
     "predeploy": "yarn build",
@@ -44,8 +34,7 @@
     "start": "react-app-rewired start",
     "build": "react-app-rewired build",
     "test": "react-app-rewired test",
-    "eject": "react-scripts eject",
-    "codegen": "openapi-typescript https://dash.readme.com/api/v1/api-registry/gas4p27lscebvgj --output src/utils/skipApi.generated.ts"
+    "eject": "react-scripts eject"
   },
   "eslintConfig": {
     "extends": [
@@ -71,7 +60,6 @@
     "crypto-browserify": "^3.12.0",
     "gh-pages": "^6.1.1",
     "https-browserify": "^1.0.0",
-    "openapi-typescript": "^6.7.4",
     "os-browserify": "^0.3.0",
     "process": "^0.11.10",
     "react-app-rewired": "^2.2.1",
