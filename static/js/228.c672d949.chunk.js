@@ -1,0 +1,2 @@
+"use strict";(self.webpackChunkmadvotes_spa=self.webpackChunkmadvotes_spa||[]).push([[228],{25848:(t,e,r)=>{r.d(e,{NameService:()=>c});var s=r(68376);class c{constructor(t,e){(0,s.c)(this,"client",void 0),(0,s.c)(this,"registry",void 0),this.client=t,this.registry=e}async resolveName(t){try{const{contract:e,getQueryMsg:r}=this.registry;return await this.client.queryContractSmart(e,r(t))}catch(r){var e;return void(null===(e=console)||void 0===e||e.error(r))}}}}}]);
+//# sourceMappingURL=228.c672d949.chunk.js.map
