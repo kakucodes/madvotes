@@ -1,7 +1,12 @@
 import { Link } from "react-router-dom";
 import { MadvotesQueryClient } from "../../codegen/Madvotes.client";
 import { useMadvotesGetPoolsQuery } from "../../codegen/Madvotes.react-query";
-import { MarketResponse, Outcome } from "../../codegen/Madvotes.types";
+import { Outcome } from "../../codegen/Madvotes.types";
+import {
+  useChainProposal,
+  useGovTallyParams,
+} from "../../hooks/useChainProposals";
+import { ExperimentListing, deriveOutcome } from "../../utils/govProposal";
 import { colors, fonts, outcomeColor, outcomeLabel } from "../../theme";
 import { formatAtom, impliedCents, timeLeft } from "../../utils/format";
 
@@ -15,34 +20,52 @@ const SHORT: Record<Outcome, string> = {
 const ORDER: Outcome[] = ["passed", "rejected", "veto_rejected", "quorum_failed"];
 
 export const ExperimentCard = ({
-  market,
+  listing,
   client,
 }: {
-  market: MarketResponse;
+  listing: ExperimentListing;
   client: MadvotesQueryClient | undefined;
 }) => {
-  const settled = market.status === "settled";
+  const settled = listing.status === "settled";
+  // Voting window closed on-chain but the contract market isn't settled yet.
+  const votingEnded = listing.votingEndTime * 1000 < Date.now();
+  const awaiting = listing.registered && !settled && votingEnded;
+  // Both settled and awaiting-settlement markets read as "done" (no longer bettable).
+  const done = settled || awaiting;
 
-  // Odds come from the live pool; only meaningful for open markets.
+  // Odds come from the live pool; only meaningful for registered, open markets.
+  // Unregistered chain proposals have no pool yet, so skip the query.
   const { data: poolsRes } = useMadvotesGetPoolsQuery({
     client,
-    args: { proposalId: market.proposal_id },
-    options: { enabled: !settled },
+    args: { proposalId: listing.proposalId },
+    options: { enabled: listing.registered && !settled },
   });
   const pools = poolsRes?.pools ?? [];
   const poolTotal = pools.reduce((sum, p) => sum + Number(p.net), 0);
 
-  const remaining = timeLeft(market.voting_end_time);
-  const endingSoon = !settled && remaining !== "ENDED" && !remaining.includes("D");
+  // For an expired-but-unsettled market, derive the on-chain result to preview.
+  const { data: proposal } = useChainProposal(listing.proposalId, awaiting);
+  const { data: tallyParams } = useGovTallyParams(awaiting);
+  const awaitingOutcome =
+    awaiting && proposal && tallyParams
+      ? deriveOutcome(proposal, tallyParams)
+      : null;
+  // Result to show on a "done" card: contract winner once settled, else derived.
+  const resultOutcome = settled
+    ? listing.market?.winning_outcome ?? null
+    : awaitingOutcome;
+
+  const remaining = timeLeft(listing.votingEndTime);
+  const endingSoon = !done && remaining !== "ENDED" && !remaining.includes("D");
 
   return (
     <Link
-      to={`/experiment/${market.proposal_id}`}
+      to={`/experiment/${listing.proposalId}`}
       style={{
         display: "block",
-        border: `1px solid ${settled ? colors.border : colors.violet}`,
-        background: settled ? "transparent" : "rgba(139,108,255,.05)",
-        opacity: settled ? 0.92 : 1,
+        border: `1px solid ${done ? colors.border : colors.violet}`,
+        background: done ? "transparent" : "rgba(139,108,255,.05)",
+        opacity: done ? 0.92 : 1,
       }}
     >
       <div
@@ -62,21 +85,21 @@ export const ExperimentCard = ({
             color: colors.violetLight,
           }}
         >
-          EXP-{market.proposal_id}
+          EXP-{listing.proposalId}
         </span>
         <span
           style={{
             fontFamily: fonts.label,
             fontSize: 9,
             letterSpacing: ".1em",
-            color: settled
+            color: done
               ? colors.muted
               : endingSoon
               ? colors.rejected
               : colors.passed,
           }}
         >
-          {settled ? "✓ CONCLUDED" : `● ${remaining}`}
+          {done ? "✓ CONCLUDED" : `● ${remaining}`}
         </span>
       </div>
 
@@ -86,15 +109,15 @@ export const ExperimentCard = ({
             fontFamily: fonts.display,
             fontWeight: 600,
             fontSize: 18,
-            color: settled ? colors.textDim : colors.text,
+            color: done ? colors.textDim : colors.text,
             lineHeight: 1.1,
             minHeight: 40,
           }}
         >
-          {market.title}
+          {listing.title}
         </div>
 
-        {settled ? (
+        {done ? (
           <div
             style={{
               border: `1px solid ${colors.passed}`,
@@ -108,14 +131,10 @@ export const ExperimentCard = ({
             Result →{" "}
             <b
               style={{
-                color: market.winning_outcome
-                  ? outcomeColor[market.winning_outcome]
-                  : colors.text,
+                color: resultOutcome ? outcomeColor[resultOutcome] : colors.text,
               }}
             >
-              {market.winning_outcome
-                ? outcomeLabel[market.winning_outcome]
-                : "—"}
+              {resultOutcome ? outcomeLabel[resultOutcome] : "—"}
             </b>
           </div>
         ) : (
@@ -170,7 +189,13 @@ export const ExperimentCard = ({
           }}
         >
           <span>POOL {poolTotal ? formatAtom(poolTotal) : "—"}</span>
-          <span>{settled ? "SETTLED" : "OPEN"}</span>
+          <span>
+            {done
+              ? "CONCLUDED"
+              : listing.registered
+              ? "OPEN"
+              : "NEW · BE FIRST"}
+          </span>
         </div>
       </div>
     </Link>

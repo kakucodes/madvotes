@@ -1,18 +1,21 @@
 import { Link } from "react-router-dom";
 import { useChain } from "@cosmos-kit/react";
 import { PROVIDER_CHAIN } from "../../hooks/useMadvotes";
+import { useMediaQuery } from "../../hooks/useMediaQuery";
 import { colors, fonts, CONTENT_MAX } from "../../theme";
 
 /** Screen 01 — "Enter the lab". Marketing entry point + wallet connect. */
 export const Landing = () => {
   const { isWalletConnected, connect } = useChain(PROVIDER_CHAIN);
+  // Below ~820px the two-column hero is too cramped, so stack it vertically.
+  const stacked = useMediaQuery("(max-width: 820px)");
 
   return (
     <div
       style={{
         maxWidth: CONTENT_MAX,
         margin: "0 auto",
-        padding: "32px 20px 60px",
+        padding: stacked ? "20px 14px 48px" : "32px 20px 60px",
       }}
     >
       <div
@@ -21,14 +24,15 @@ export const Landing = () => {
           border: `1px solid ${colors.border}`,
           overflow: "hidden",
           display: "grid",
-          gridTemplateColumns: "1.05fr .95fr",
+          gridTemplateColumns: stacked ? "1fr" : "1.05fr .95fr",
         }}
       >
         {/* pitch */}
         <div
           style={{
-            padding: "54px 46px",
-            borderRight: `1px solid ${colors.borderSoft}`,
+            padding: stacked ? "32px 22px" : "54px 46px",
+            borderRight: stacked ? "none" : `1px solid ${colors.borderSoft}`,
+            borderBottom: stacked ? `1px solid ${colors.borderSoft}` : "none",
           }}
         >
           <span
@@ -47,7 +51,7 @@ export const Landing = () => {
             style={{
               fontFamily: fonts.display,
               fontWeight: 700,
-              fontSize: 58,
+              fontSize: "clamp(40px, 11vw, 58px)",
               color: colors.text,
               lineHeight: 0.98,
               letterSpacing: ".5px",
@@ -70,11 +74,18 @@ export const Landing = () => {
               maxWidth: 430,
             }}
           >
-            Stake ATOM on how a live Hub proposal resolves — Passed, Rejected,
+            Bet ATOM on how a live Hub proposal resolves — Passed, Rejected,
             Veto-Rejected or Quorum-Failed. Settled by the chain itself. No
             oracle, no house.
           </div>
-          <div style={{ display: "flex", gap: 12, marginTop: 30 }}>
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 12,
+              marginTop: 30,
+            }}
+          >
             <Stat title="🔥 5% burn" sub="EVERY EXPERIMENT · DEFLATIONARY" />
             <Stat title="⏱ early edge" sub="CALL IT SOONER · CLAIM MORE" />
           </div>
@@ -83,7 +94,7 @@ export const Landing = () => {
         {/* art + connect */}
         <div
           style={{
-            padding: "40px 46px",
+            padding: stacked ? "28px 22px 32px" : "40px 46px",
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
@@ -107,7 +118,8 @@ export const Landing = () => {
               alt="vote"
               className="mv-pixel"
               style={{
-                width: 300,
+                width: stacked ? 220 : 300,
+                maxWidth: "100%",
                 height: "auto",
                 display: "block",
                 margin: "0 auto",

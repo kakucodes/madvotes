@@ -9,7 +9,7 @@ const FAQS: Faq[] = [
     a: (
       <>
         MadVotes is a prediction market on Cosmos Hub governance. Each live Hub
-        proposal becomes an <em>experiment</em> you can stake ATOM on by calling
+        proposal becomes an <em>experiment</em> you can bet ATOM on by calling
         how it will resolve. When the proposal finishes, the chain&apos;s own
         result settles the market — there&apos;s no oracle and no house.
       </>
@@ -22,7 +22,8 @@ const FAQS: Faq[] = [
         Every experiment has the four governance outcomes the Hub itself can
         return:
         <br />
-        <b style={{ color: colors.passed }}>Passed</b> — the proposal is adopted.
+        <b style={{ color: colors.passed }}>Passed</b> — the proposal is
+        adopted.
         <br />
         <b style={{ color: colors.rejected }}>Rejected</b> — it&apos;s voted
         down.
@@ -30,8 +31,8 @@ const FAQS: Faq[] = [
         <b style={{ color: colors.veto }}>Veto-Rejected</b> — rejected with the
         veto threshold ({"≥"}33.4% NoWithVeto), which also burns the deposit.
         <br />
-        <b style={{ color: colors.quorum }}>Quorum-Failed</b> — not enough of the
-        bonded stake voted, so the proposal fails for lack of quorum.
+        <b style={{ color: colors.quorum }}>Quorum-Failed</b> — not enough of
+        the bonded stake voted, so the proposal fails for lack of quorum.
       </>
     ),
   },
@@ -176,7 +177,13 @@ const FaqItem = ({ item }: { item: Faq }) => {
 };
 
 export const Docs = () => (
-  <div style={{ maxWidth: CONTENT_MAX, margin: "0 auto", padding: "24px 26px 90px" }}>
+  <div
+    style={{
+      maxWidth: CONTENT_MAX,
+      margin: "0 auto",
+      padding: "24px 26px 90px",
+    }}
+  >
     <div
       style={{
         fontFamily: fonts.display,
@@ -216,8 +223,8 @@ export const Docs = () => (
       }}
     >
       Still curious? Everything here settles from on-chain governance data —
-      read the proposal you&apos;re staking on directly on the Hub before you run
-      a hypothesis. Everything is an experiment.
+      read the proposal you&apos;re staking on directly on the Hub before you
+      run a hypothesis. Everything is an experiment.
     </div>
   </div>
 );

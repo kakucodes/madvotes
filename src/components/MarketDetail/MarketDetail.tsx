@@ -1,35 +1,59 @@
 import { Link, useParams } from "react-router-dom";
 import { useMadvotesQueryClient } from "../../hooks/useMadvotes";
+import { useChainProposals } from "../../hooks/useChainProposals";
+import { useMediaQuery } from "../../hooks/useMediaQuery";
 import {
   useMadvotesGetMarketQuery,
   useMadvotesGetPoolsQuery,
 } from "../../codegen/Madvotes.react-query";
 import { Outcome } from "../../codegen/Madvotes.types";
+import {
+  listingFromMarket,
+  listingFromProposal,
+} from "../../utils/govProposal";
 import { colors, fonts, outcomeColor, outcomeLabel, CONTENT_MAX } from "../../theme";
 import { formatAtom, impliedCents, timeLeft } from "../../utils/format";
 import { HypothesisSlip } from "./HypothesisSlip";
 
 const ORDER: Outcome[] = ["passed", "rejected", "veto_rejected", "quorum_failed"];
 
-const wrap = { maxWidth: CONTENT_MAX, margin: "0 auto", padding: "20px 26px 90px" };
-
 export const MarketDetail = () => {
   const { proposalId } = useParams();
   const id = Number(proposalId);
+  // Below ~820px the odds-grid / hypothesis-slip split is too tight, so stack.
+  const stacked = useMediaQuery("(max-width: 820px)");
+  const wrap = {
+    maxWidth: CONTENT_MAX,
+    margin: "0 auto",
+    padding: stacked ? "16px 14px 70px" : "20px 26px 90px",
+  };
   const { data: client } = useMadvotesQueryClient();
 
-  const { data: market, isLoading, error } = useMadvotesGetMarketQuery({
+  // The market may not be registered yet — getMarket will error in that case,
+  // so we fall back to the chain proposal and register-on-first-bet.
+  const { data: market, isLoading: marketLoading } = useMadvotesGetMarketQuery({
     client,
     args: { proposalId: id },
-    options: { enabled: Number.isFinite(id) },
+    options: { enabled: Number.isFinite(id), retry: false },
   });
+  const { data: chainProposals, isLoading: proposalsLoading } =
+    useChainProposals();
+  const chainProposal = chainProposals?.find((p) => p.id === id);
+
+  // Pools only exist for a registered market.
   const { data: poolsRes } = useMadvotesGetPoolsQuery({
     client,
     args: { proposalId: id },
-    options: { enabled: Number.isFinite(id) },
+    options: { enabled: Number.isFinite(id) && !!market },
   });
   const pools = poolsRes?.pools ?? [];
   const poolTotal = pools.reduce((sum, p) => sum + Number(p.net), 0);
+
+  const listing = market
+    ? listingFromMarket(market)
+    : chainProposal
+    ? listingFromProposal(chainProposal)
+    : undefined;
 
   const crumb = (
     <Link to="/experiments" style={{ fontFamily: fonts.mono, fontSize: 12, color: colors.muted }}>
@@ -40,21 +64,19 @@ export const MarketDetail = () => {
   if (!Number.isFinite(id)) {
     return <div style={wrap}>{crumb}<Notice>Invalid experiment id.</Notice></div>;
   }
-  if (isLoading || !client) {
-    return <div style={wrap}>{crumb}<Notice>Loading experiment…</Notice></div>;
-  }
-  if (error || !market) {
+  if (!listing) {
+    if (!client || marketLoading || proposalsLoading) {
+      return <div style={wrap}>{crumb}<Notice>Loading experiment…</Notice></div>;
+    }
     return (
       <div style={wrap}>
         {crumb}
-        <Notice color={colors.rejected}>
-          {error ? error.message : "Experiment not found."}
-        </Notice>
+        <Notice color={colors.rejected}>Experiment not found.</Notice>
       </div>
     );
   }
 
-  const settled = market.status === "settled";
+  const settled = listing.status === "settled";
 
   return (
     <div style={wrap}>
@@ -68,7 +90,7 @@ export const MarketDetail = () => {
             color: settled ? colors.muted : colors.passed,
           }}
         >
-          {settled ? "✓ CONCLUDED" : `● RUNNING · ENDS ${timeLeft(market.voting_end_time)}`}
+          {settled ? "✓ CONCLUDED" : `● RUNNING · ENDS ${timeLeft(listing.votingEndTime)}`}
         </span>
       </div>
 
@@ -76,23 +98,34 @@ export const MarketDetail = () => {
         style={{
           fontFamily: fonts.display,
           fontWeight: 700,
-          fontSize: 33,
+          fontSize: "clamp(24px, 6vw, 33px)",
           color: colors.text,
           lineHeight: 1.05,
           letterSpacing: ".5px",
           margin: "10px 0 6px",
         }}
       >
-        EXP-{market.proposal_id} · {market.title}
+        EXP-{listing.proposalId} · {listing.title}
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", border: `1px solid ${colors.border}`, margin: "16px 0 20px" }}>
         <Stat label="POOL VOLUME" value={poolTotal ? formatAtom(poolTotal) : "—"} />
-        <Stat label="ENDS IN" value={settled ? "—" : timeLeft(market.voting_end_time)} />
-        <Stat label="STATUS" value={market.status.toUpperCase()} last />
+        <Stat label="ENDS IN" value={settled ? "—" : timeLeft(listing.votingEndTime)} />
+        <Stat
+          label="STATUS"
+          value={listing.registered ? listing.status.toUpperCase() : "NEW"}
+          last
+        />
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr", gap: 18, alignItems: "start" }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: stacked ? "1fr" : "1.5fr 1fr",
+          gap: 18,
+          alignItems: "start",
+        }}
+      >
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", border: `1px solid ${colors.border}` }}>
           {ORDER.map((o, i) => {
             const cents = impliedCents(pools, o);
@@ -136,13 +169,13 @@ export const MarketDetail = () => {
             </div>
             <div style={{ fontSize: 15, color: colors.textDim }}>
               →{" "}
-              <b style={{ color: market.winning_outcome ? outcomeColor[market.winning_outcome] : colors.text }}>
-                {market.winning_outcome ? outcomeLabel[market.winning_outcome] : "—"}
+              <b style={{ color: listing.market?.winning_outcome ? outcomeColor[listing.market.winning_outcome] : colors.text }}>
+                {listing.market?.winning_outcome ? outcomeLabel[listing.market.winning_outcome] : "—"}
               </b>
             </div>
           </div>
         ) : (
-          <HypothesisSlip market={market} pools={pools} />
+          <HypothesisSlip listing={listing} pools={pools} />
         )}
       </div>
     </div>
@@ -150,9 +183,19 @@ export const MarketDetail = () => {
 };
 
 const Stat = ({ label, value, last }: { label: string; value: string; last?: boolean }) => (
-  <div style={{ padding: "13px 17px", borderRight: last ? undefined : `1px solid ${colors.borderSoft}` }}>
+  <div style={{ padding: "13px 12px", borderRight: last ? undefined : `1px solid ${colors.borderSoft}` }}>
     <div style={{ fontFamily: fonts.label, fontSize: 9, color: colors.muted, letterSpacing: ".1em" }}>{label}</div>
-    <div style={{ fontFamily: fonts.mono, fontSize: 20, color: colors.text, marginTop: 4 }}>{value}</div>
+    <div
+      style={{
+        fontFamily: fonts.mono,
+        fontSize: "clamp(15px, 4.5vw, 20px)",
+        color: colors.text,
+        marginTop: 4,
+        whiteSpace: "nowrap",
+      }}
+    >
+      {value}
+    </div>
   </div>
 );
 

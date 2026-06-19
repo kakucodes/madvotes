@@ -1,5 +1,12 @@
 import { useMadvotesListMarketsQuery } from "../../codegen/Madvotes.react-query";
 import { useMadvotesQueryClient } from "../../hooks/useMadvotes";
+import { useChainProposals } from "../../hooks/useChainProposals";
+import { useMediaQuery } from "../../hooks/useMediaQuery";
+import {
+  ExperimentListing,
+  listingFromMarket,
+  listingFromProposal,
+} from "../../utils/govProposal";
 import { colors, fonts, CONTENT_MAX } from "../../theme";
 import { ExperimentCard } from "./ExperimentCard";
 import { Marquee } from "./Marquee";
@@ -57,6 +64,7 @@ const EmptyState = () => (
 );
 
 export const LiveExperiments = () => {
+  const compact = useMediaQuery("(max-width: 720px)");
   // undefined until the read-only client connects; the generated query hook
   // stays disabled until then.
   const { data: client } = useMadvotesQueryClient();
@@ -64,14 +72,32 @@ export const LiveExperiments = () => {
     client,
     args: {},
   });
+  // Voting-period proposals straight from the chain — these may not be
+  // registered as markets yet, but we still want to show (and bet on) them.
+  const { data: chainProposals } = useChainProposals();
+
+  // Merge contract markets with chain proposals, keyed by proposal id. A
+  // registered market wins over the bare chain proposal (it has live pools and
+  // a settled state); unregistered proposals fill in the rest.
+  const byId = new Map<number, ExperimentListing>();
+  for (const proposal of chainProposals ?? []) {
+    byId.set(proposal.id, listingFromProposal(proposal));
+  }
+  for (const market of data?.markets ?? []) {
+    byId.set(market.proposal_id, listingFromMarket(market));
+  }
 
   // Newest first — governance proposal IDs increment, so the highest ID is the
-  // most recently registered experiment. Sort a copy to avoid mutating the
-  // query cache.
-  const markets = [...(data?.markets ?? [])].sort(
-    (a, b) => Number(b.proposal_id) - Number(a.proposal_id)
+  // most recent experiment.
+  const listings = [...byId.values()].sort(
+    (a, b) => b.proposalId - a.proposalId
   );
-  const running = markets.filter((m) => m.status === "open").length;
+  // "Running" = open and still inside its voting window. Expired-but-unsettled
+  // markets are open on the contract but no longer bettable, so exclude them.
+  const nowMs = Date.now();
+  const running = listings.filter(
+    (l) => l.status === "open" && l.votingEndTime * 1000 > nowMs
+  ).length;
   const connecting = isLoading || !client;
 
   return (
@@ -89,10 +115,18 @@ export const LiveExperiments = () => {
         style={{
           maxWidth: CONTENT_MAX,
           margin: "0 auto",
-          padding: "24px 26px 90px",
+          padding: compact ? "20px 14px 70px" : "24px 26px 90px",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: 12,
+            marginBottom: 18,
+          }}
+        >
           <span
             style={{
               fontFamily: fonts.display,
@@ -110,14 +144,20 @@ export const LiveExperiments = () => {
 
         {connecting && <Notice>Connecting to the lab…</Notice>}
         {error && <Notice color={colors.rejected}>{error.message}</Notice>}
-        {!connecting && !error && markets.length === 0 && <EmptyState />}
+        {!connecting && !error && listings.length === 0 && <EmptyState />}
 
-        {markets.length > 0 && (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
-            {markets.map((market) => (
+        {listings.length > 0 && (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+              gap: 14,
+            }}
+          >
+            {listings.map((listing) => (
               <ExperimentCard
-                key={market.proposal_id}
-                market={market}
+                key={listing.proposalId}
+                listing={listing}
                 client={client}
               />
             ))}

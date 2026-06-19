@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { MarketResponse, Outcome } from "../../codegen/Madvotes.types";
+import { MsgExecuteContractEncodeObject } from "@cosmjs/cosmwasm-stargate";
+import { Outcome } from "../../codegen/Madvotes.types";
 import { MadvotesMsgComposer } from "../../codegen/Madvotes.message-composer";
+import { ExperimentListing } from "../../utils/govProposal";
 import { useMadvotesSigningClient } from "../../hooks/useMadvotes";
 import {
   DENOM,
@@ -44,13 +46,13 @@ const Row = ({
 );
 
 export const ConfirmModal = ({
-  market,
+  listing,
   outcome,
   stakeMicro,
   slip,
   onClose,
 }: {
-  market: MarketResponse;
+  listing: ExperimentListing;
   outcome: Outcome;
   stakeMicro: bigint;
   slip: Slip;
@@ -85,18 +87,20 @@ export const ConfirmModal = ({
     }
 
     const funds = [{ denom: DENOM, amount: stakeMicro.toString() }];
-    const params = { outcome, proposalId: market.proposal_id };
+    const proposalId = listing.proposalId;
+    const params = { outcome, proposalId };
     console.log("[madvotes] placeBet →", {
       contract: MADVOTES_CONTRACT_ADDRESS,
       sender: signingClient.sender,
       params,
       funds,
+      registering: !listing.registered,
       fee: "auto",
     });
 
     setStatus("signing");
     try {
-      // Build the execute msg with the composer and broadcast via
+      // Build the execute msg(s) with the composer and broadcast via
       // signAndBroadcast instead of the generated placeBet (which routes through
       // cosmjs `execute` → parseRawLog). SDK 0.50 returns an empty raw_log for
       // successful txs, and cosmjs 0.32's JSON.parse("") throws on it even though
@@ -105,10 +109,18 @@ export const ConfirmModal = ({
         signingClient.sender,
         signingClient.contractAddress,
       );
-      const msg = composer.placeBet(params, funds);
+      // If the proposal has no market yet, register it in the same tx so the
+      // bet lands atomically — no backend pre-registration needed.
+      const msgs: MsgExecuteContractEncodeObject[] = [];
+      if (!listing.registered && listing.proposal) {
+        msgs.push(
+          composer.registerMarket({ proposal: listing.proposal, proposalId }),
+        );
+      }
+      msgs.push(composer.placeBet(params, funds));
       const res = await signingClient.client.signAndBroadcast(
         signingClient.sender,
-        [msg],
+        msgs,
         "auto",
       );
       console.log("[madvotes] broadcast result", {
@@ -125,10 +137,12 @@ export const ConfirmModal = ({
       }
       setTxHash(res.transactionHash);
       setStatus("success");
-      // Refresh pools/markets so the new stake shows up.
+      // Refresh pools/markets so the new stake shows up, and the chain-proposal
+      // list so a just-registered market drops its "unregistered" listing.
       queryClient.invalidateQueries({ queryKey: ["madvotesGetPools"] });
       queryClient.invalidateQueries({ queryKey: ["madvotesGetMarket"] });
       queryClient.invalidateQueries({ queryKey: ["madvotesListMarkets"] });
+      queryClient.invalidateQueries({ queryKey: ["chain-proposals"] });
     } catch (e) {
       console.error("[madvotes] placeBet ✗ raw error:", e);
       setErrMsg(describeError(e));
@@ -267,7 +281,7 @@ export const ConfirmModal = ({
                     margin: "5px 0 9px",
                   }}
                 >
-                  EXP-{market.proposal_id} · {market.title}
+                  EXP-{listing.proposalId} · {listing.title}
                 </div>
                 <span
                   style={{

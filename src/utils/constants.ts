@@ -5,7 +5,7 @@ export const MADVOTES_CONTRACT_ADDRESS =
 
 export const CHAIN_ID = "provider";
 export const RPC = "https://cosmos-testnet-rpc.itrocket.net";
-export const REST = "https://cosmos-testnet-rest.itrocket.net";
+export const REST = "https://cosmos-testnet-api.itrocket.net";
 
 // Mintscan explorer base for the provider (ICS) testnet; append a tx hash.
 export const EXPLORER_TX = "https://www.mintscan.io/ics-testnet-provider/tx/";

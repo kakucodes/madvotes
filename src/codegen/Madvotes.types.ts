@@ -85,8 +85,14 @@ export type QueryMsg = {
 export type MarketStatus = "open" | "settled";
 export interface ClaimResponse {
   already_claimed: boolean;
-  claimable: Uint128;
   depositor: string;
+  /**
+   * The depositor's payout for this market. While `already_claimed` is false
+   * this is the amount still claimable (exact once settled; "0" before
+   * settlement or for non-winners); once `already_claimed` is true it is the
+   * amount that was actually paid out.
+   */
+  payout: Uint128;
   proposal_id: number;
   settled: boolean;
 }

@@ -20,8 +20,14 @@ import {
   OutcomeAccum,
 } from "../../codegen/Madvotes.types";
 import { MadvotesClient } from "../../codegen/Madvotes.client";
+import { MadvotesMsgComposer } from "../../codegen/Madvotes.message-composer";
 import { formatAtom, timeLeft } from "../../utils/format";
 import { useGetUserPositions } from "../../hooks/useGetUserPositions";
+import {
+  useChainProposal,
+  useGovTallyParams,
+} from "../../hooks/useChainProposals";
+import { deriveOutcome } from "../../utils/govProposal";
 
 type UserPosition = {
   proposal_id: number;
@@ -85,7 +91,7 @@ const ClaimSection = ({
     }
   };
 
-  if (isLoading) {
+  if (isLoading || !signingClient) {
     return (
       <div
         style={{
@@ -100,7 +106,10 @@ const ClaimSection = ({
     );
   }
 
-  if (txStatus === "success") {
+  // `payout` persists after collection (semantics: claimable while open, the
+  // paid-out amount once `already_claimed`), so we can always show the figure.
+  const collected = claim?.already_claimed || txStatus === "success";
+  if (collected) {
     return (
       <div
         style={{
@@ -113,18 +122,13 @@ const ClaimSection = ({
           color: colors.passed,
         }}
       >
-        ✓ Payout collected!
+        ✓ Collected {formatAtom(claim?.payout ?? "0")} ATOM
       </div>
     );
   }
 
-  if (
-    !claim ||
-    !claim.settled ||
-    claim.already_claimed ||
-    claim.claimable === "0"
-  ) {
-    // Settled but no payout (lost or already claimed)
+  if (!claim || !claim.settled || claim.payout === "0") {
+    // Settled but no payout (lost).
     return (
       <div
         style={{
@@ -134,9 +138,7 @@ const ClaimSection = ({
           marginTop: 10,
         }}
       >
-        {claim?.already_claimed
-          ? "✓ Already collected."
-          : "✗ No payout — better luck next time."}
+        ✗ No payout — better luck next time.
       </div>
     );
   }
@@ -177,7 +179,7 @@ const ClaimSection = ({
               letterSpacing: ".5px",
             }}
           >
-            {formatAtom(claim.claimable)}{" "}
+            {formatAtom(claim.payout)}{" "}
             <span
               style={{
                 fontFamily: fonts.mono,
@@ -212,6 +214,200 @@ const ClaimSection = ({
   );
 };
 
+// ─── Settle + claim section (concluded, not-yet-settled markets) ────────────
+
+/**
+ * For a market whose voting window has closed but which hasn't been settled
+ * on-chain yet: pull the concluded proposal + tally from the chain, derive the
+ * winning outcome (mirroring the contract), and — if this user holds the
+ * winning outcome — offer a single tx that settles the market and claims the
+ * payout. Losers see only the result (the first winner to click settles it for
+ * everyone; afterwards the normal settled/claim path takes over).
+ */
+const SettleClaimSection = ({
+  position,
+  signingClient,
+}: {
+  position: UserPosition;
+  signingClient: MadvotesClient | undefined;
+}) => {
+  const [txStatus, setTxStatus] = useState<
+    "idle" | "signing" | "success" | "error"
+  >("idle");
+  const [errMsg, setErrMsg] = useState("");
+  const reactQueryClient = useQueryClient();
+
+  const { data: proposal, isLoading: proposalLoading } = useChainProposal(
+    position.proposal_id,
+  );
+  const { data: tallyParams, isLoading: paramsLoading } = useGovTallyParams();
+
+  const outcome =
+    proposal && tallyParams ? deriveOutcome(proposal, tallyParams) : null;
+  const userWon =
+    !!outcome && position.positions.some((p) => p.outcome === outcome);
+
+  const doSettleAndClaim = async () => {
+    if (!signingClient || !proposal) return;
+    setTxStatus("signing");
+    try {
+      // settle_market records the winning outcome; claim collects the payout.
+      // Bundled into one tx — the first winner to click settles for everyone.
+      const composer = new MadvotesMsgComposer(
+        signingClient.sender,
+        signingClient.contractAddress,
+      );
+      const msgs = [
+        composer.settleMarket({ proposal, proposalId: position.proposal_id }),
+        composer.claim({ proposalId: position.proposal_id }),
+      ];
+      const res = await signingClient.client.signAndBroadcast(
+        signingClient.sender,
+        msgs,
+        "auto",
+      );
+      if (res.code !== 0) {
+        throw new Error(
+          `tx failed (code ${res.code}): ${res.rawLog || "no log"}`,
+        );
+      }
+      setTxStatus("success");
+      reactQueryClient.invalidateQueries();
+    } catch (e) {
+      setErrMsg(e instanceof Error ? e.message : String(e));
+      setTxStatus("error");
+    }
+  };
+
+  const resultRow = (
+    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+      <FieldLabel>RESULT</FieldLabel>
+      <span
+        style={{
+          fontFamily: fonts.mono,
+          fontSize: 13,
+          color: outcome ? outcomeColor[outcome] : colors.muted,
+          marginTop: -6,
+        }}
+      >
+        → {outcome ? outcomeLabel[outcome] : "—"}
+      </span>
+    </div>
+  );
+
+  if (proposalLoading || paramsLoading) {
+    return (
+      <div
+        style={{
+          fontFamily: fonts.mono,
+          fontSize: 12,
+          color: colors.muted,
+          marginTop: 10,
+        }}
+      >
+        Checking result…
+      </div>
+    );
+  }
+
+  if (txStatus === "success") {
+    return (
+      <div>
+        {resultRow}
+        <div
+          style={{
+            border: `1px solid ${colors.passed}`,
+            background: "rgba(78,239,90,.08)",
+            padding: "10px 14px",
+            marginTop: 12,
+            fontFamily: fonts.mono,
+            fontSize: 13,
+            color: colors.passed,
+          }}
+        >
+          ✓ Payout collected!
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {resultRow}
+      {userWon ? (
+        <div style={{ marginTop: 12 }}>
+          {txStatus === "error" && (
+            <div
+              style={{
+                fontFamily: fonts.mono,
+                fontSize: 11,
+                color: colors.rejected,
+                marginBottom: 8,
+                wordBreak: "break-word",
+              }}
+            >
+              {errMsg}
+            </div>
+          )}
+          <div
+            style={{
+              border: `1px solid ${colors.violet}`,
+              background: "rgba(139,108,255,.08)",
+              padding: "12px 16px",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: 16,
+            }}
+          >
+            <div>
+              <FieldLabel>YOU WON THIS EXPERIMENT</FieldLabel>
+              <div
+                style={{
+                  fontFamily: fonts.mono,
+                  fontSize: 12,
+                  color: colors.textSoft,
+                }}
+              >
+                Claim your winnings!
+              </div>
+            </div>
+            <button
+              onClick={doSettleAndClaim}
+              disabled={txStatus === "signing" || !signingClient}
+              style={{
+                border: `1px solid ${colors.violet}`,
+                background: colors.violet,
+                color: colors.text,
+                fontFamily: fonts.label,
+                fontSize: 11,
+                letterSpacing: ".1em",
+                padding: "10px 20px",
+                cursor: txStatus === "signing" ? "wait" : "pointer",
+                opacity: txStatus === "signing" || !signingClient ? 0.6 : 1,
+                flexShrink: 0,
+              }}
+            >
+              {txStatus === "signing" ? "SETTLING…" : "CLAIM"}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div
+          style={{
+            fontFamily: fonts.mono,
+            fontSize: 12,
+            color: colors.muted,
+            marginTop: 10,
+          }}
+        >
+          ✗ No payout — better luck next time.
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ─── Position card ──────────────────────────────────────────────────────────
 
 const NotebookPositionCard = ({
@@ -222,16 +418,17 @@ const NotebookPositionCard = ({
   signingClient: MadvotesClient | undefined;
 }) => {
   const settled = position.status === "settled";
-  const userWon =
-    settled &&
-    !!position.winning_outcome &&
-    position.positions.some((p) => p.outcome === position.winning_outcome);
+  // Voting window closed on-chain but the contract market isn't settled yet.
+  const votingEnded = position.voting_end_time * 1000 < Date.now();
+  const concluded = !settled && votingEnded;
+  // Both settled and awaiting-settlement markets read as "done" visually.
+  const done = settled || concluded;
 
   return (
     <div
       style={{
-        border: `1px solid ${settled ? colors.border : colors.violet}`,
-        background: settled ? "transparent" : "rgba(139,108,255,.04)",
+        border: `1px solid ${done ? colors.border : colors.violet}`,
+        background: done ? "transparent" : "rgba(139,108,255,.04)",
       }}
     >
       {/* Header bar */}
@@ -242,7 +439,7 @@ const NotebookPositionCard = ({
           alignItems: "center",
           padding: "10px 16px",
           borderBottom: `1px solid ${colors.border}`,
-          background: settled ? "transparent" : "rgba(139,108,255,.06)",
+          background: done ? "transparent" : "rgba(139,108,255,.06)",
         }}
       >
         <Link
@@ -262,10 +459,10 @@ const NotebookPositionCard = ({
             fontFamily: fonts.label,
             fontSize: 9,
             letterSpacing: ".1em",
-            color: settled ? colors.muted : colors.passed,
+            color: done ? colors.muted : colors.passed,
           }}
         >
-          {settled
+          {done
             ? "✓ CONCLUDED"
             : `● OPEN · ENDS ${timeLeft(position.voting_end_time)}`}
         </span>
@@ -278,7 +475,7 @@ const NotebookPositionCard = ({
             fontFamily: fonts.display,
             fontWeight: 600,
             fontSize: 18,
-            color: settled ? colors.textDim : colors.text,
+            color: done ? colors.textDim : colors.text,
             lineHeight: 1.1,
             marginBottom: 14,
           }}
@@ -400,23 +597,17 @@ const NotebookPositionCard = ({
                   : "—"}
               </span>
             </div>
-            <ClaimSection
-              position={position}
-              signingClient={userWon ? signingClient : undefined}
-            />
-            {!userWon && !signingClient && (
-              <div
-                style={{
-                  fontFamily: fonts.mono,
-                  fontSize: 12,
-                  color: colors.muted,
-                  marginTop: 10,
-                }}
-              >
-                ✗ No payout — better luck next time.
-              </div>
-            )}
+            <ClaimSection position={position} signingClient={signingClient} />
           </div>
+        )}
+
+        {/* Concluded on-chain but not yet settled — derive result & offer
+            settle+claim in one tx. */}
+        {concluded && (
+          <SettleClaimSection
+            position={position}
+            signingClient={signingClient}
+          />
         )}
       </div>
     </div>

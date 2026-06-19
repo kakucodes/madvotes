@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useChain } from "@cosmos-kit/react";
-import { MarketResponse, Outcome, OutcomeAccum } from "../../codegen/Madvotes.types";
+import { Outcome, OutcomeAccum } from "../../codegen/Madvotes.types";
+import { ExperimentListing } from "../../utils/govProposal";
 import { PROVIDER_CHAIN } from "../../hooks/useMadvotes";
 import { MIN_BET_UATOM } from "../../utils/constants";
 import { atomToMicro, computeSlip } from "../../utils/bet";
@@ -12,10 +13,10 @@ import { ConfirmModal } from "./ConfirmModal";
 const ORDER: Outcome[] = ["passed", "rejected", "veto_rejected", "quorum_failed"];
 
 export const HypothesisSlip = ({
-  market,
+  listing,
   pools,
 }: {
-  market: MarketResponse;
+  listing: ExperimentListing;
   pools: OutcomeAccum[];
 }) => {
   const { isWalletConnected, connect } = useChain(PROVIDER_CHAIN);
@@ -26,16 +27,16 @@ export const HypothesisSlip = ({
   const stakeMicro = atomToMicro(stake);
   const nowSec = Math.floor(Date.now() / 1000);
   const weight = betWeight(
-    BigInt(market.voting_start_time),
-    BigInt(market.voting_end_time),
+    BigInt(listing.votingStartTime),
+    BigInt(listing.votingEndTime),
     BigInt(nowSec)
   );
   const multiplier = (Number(weight) / 1_000_000).toFixed(2);
   // Where the bet lands along the open→close axis, for the curve marker.
-  const duration = market.voting_end_time - market.voting_start_time;
+  const duration = listing.votingEndTime - listing.votingStartTime;
   const elapsed =
     duration > 0
-      ? Math.min(1, Math.max(0, (nowSec - market.voting_start_time) / duration))
+      ? Math.min(1, Math.max(0, (nowSec - listing.votingStartTime) / duration))
       : 1;
   const slip = computeSlip(stakeMicro, weight, pools, outcome);
   const belowMin = stakeMicro < MIN_BET_UATOM;
@@ -71,7 +72,7 @@ export const HypothesisSlip = ({
             letterSpacing: ".1em",
           }}
         >
-          EXP-{market.proposal_id}
+          EXP-{listing.proposalId}
         </span>
       </div>
 
@@ -199,7 +200,7 @@ export const HypothesisSlip = ({
 
       {confirming && (
         <ConfirmModal
-          market={market}
+          listing={listing}
           outcome={outcome}
           stakeMicro={stakeMicro}
           slip={slip}
