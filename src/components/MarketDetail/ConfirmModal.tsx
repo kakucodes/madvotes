@@ -3,7 +3,11 @@ import { useQueryClient } from "@tanstack/react-query";
 import { MarketResponse, Outcome } from "../../codegen/Madvotes.types";
 import { MadvotesMsgComposer } from "../../codegen/Madvotes.message-composer";
 import { useMadvotesSigningClient } from "../../hooks/useMadvotes";
-import { DENOM, EXPLORER_TX, MADVOTES_CONTRACT_ADDRESS } from "../../utils/constants";
+import {
+  DENOM,
+  EXPLORER_TX,
+  MADVOTES_CONTRACT_ADDRESS,
+} from "../../utils/constants";
 import { formatAtom } from "../../utils/format";
 import { Slip } from "../../utils/bet";
 import { colors, fonts, outcomeColor, outcomeLabel } from "../../theme";
@@ -99,13 +103,13 @@ export const ConfirmModal = ({
       // the tx succeeded. signAndBroadcast skips that parse; we check `code`.
       const composer = new MadvotesMsgComposer(
         signingClient.sender,
-        signingClient.contractAddress
+        signingClient.contractAddress,
       );
       const msg = composer.placeBet(params, funds);
       const res = await signingClient.client.signAndBroadcast(
         signingClient.sender,
         [msg],
-        "auto"
+        "auto",
       );
       console.log("[madvotes] broadcast result", {
         code: res.code,
@@ -115,7 +119,9 @@ export const ConfirmModal = ({
         rawLog: res.rawLog,
       });
       if (res.code !== 0) {
-        throw new Error(`tx failed (code ${res.code}): ${res.rawLog || "no log"}`);
+        throw new Error(
+          `tx failed (code ${res.code}): ${res.rawLog || "no log"}`,
+        );
       }
       setTxHash(res.transactionHash);
       setStatus("success");
@@ -173,7 +179,9 @@ export const ConfirmModal = ({
               letterSpacing: ".5px",
             }}
           >
-            {status === "success" ? "HYPOTHESIS RECORDED" : "CONFIRM HYPOTHESIS"}
+            {status === "success"
+              ? "HYPOTHESIS RECORDED"
+              : "CONFIRM HYPOTHESIS"}
           </span>
           <span
             onClick={onClose}
@@ -252,7 +260,13 @@ export const ConfirmModal = ({
                 >
                   EXPERIMENT
                 </div>
-                <div style={{ fontSize: 15, color: colors.text, margin: "5px 0 9px" }}>
+                <div
+                  style={{
+                    fontSize: 15,
+                    color: colors.text,
+                    margin: "5px 0 9px",
+                  }}
+                >
                   EXP-{market.proposal_id} · {market.title}
                 </div>
                 <span
@@ -278,13 +292,19 @@ export const ConfirmModal = ({
                   background: "rgba(139,108,255,.04)",
                 }}
               >
-                <Row label="stake" value={`${formatAtom(stakeMicro.toString())} ATOM`} />
+                <Row
+                  label="stake"
+                  value={`${formatAtom(stakeMicro.toString())} ATOM`}
+                />
                 <Row
                   label="reagent burn 5% 🔥"
                   value={`− ${formatAtom(slip.burn.toString())}`}
                   color={colors.violetLight}
                 />
-                <Row label="net credited" value={`${formatAtom(slip.net.toString())} ATOM`} />
+                <Row
+                  label="net credited"
+                  value={`${formatAtom(slip.net.toString())} ATOM`}
+                />
                 <Row
                   label="projected yield"
                   value={`≈ ${formatAtom(slip.projected.toString())}`}
@@ -332,8 +352,8 @@ export const ConfirmModal = ({
                 {status === "signing"
                   ? "WAITING FOR SIGNATURE…"
                   : status === "error"
-                  ? "TRY AGAIN →"
-                  : "SIGN IN WALLET →"}
+                    ? "TRY AGAIN →"
+                    : "SIGN →"}
               </button>
             </>
           )}

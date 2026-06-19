@@ -1,7 +1,7 @@
 export const COSMOS_DIRECTORY_REST = "https://rest.cosmos.directory/";
 
 export const MADVOTES_CONTRACT_ADDRESS =
-  "cosmos1rwgrc7xq5zn3neyhe3va04f9zy4z5n7la2ql9el5973dx0jclpdq804tre";
+  "cosmos17zz7caq9usyh2c8crltzt2nvxdvmp4n769f8jq40d0ltgklnupxshhjmwz";
 
 export const CHAIN_ID = "provider";
 export const RPC = "https://cosmos-testnet-rpc.itrocket.net";

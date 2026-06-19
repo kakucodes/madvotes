@@ -65,7 +65,12 @@ export const LiveExperiments = () => {
     args: {},
   });
 
-  const markets = data?.markets ?? [];
+  // Newest first — governance proposal IDs increment, so the highest ID is the
+  // most recently registered experiment. Sort a copy to avoid mutating the
+  // query cache.
+  const markets = [...(data?.markets ?? [])].sort(
+    (a, b) => Number(b.proposal_id) - Number(a.proposal_id)
+  );
   const running = markets.filter((m) => m.status === "open").length;
   const connecting = isLoading || !client;
 
@@ -99,7 +104,7 @@ export const LiveExperiments = () => {
             LIVE EXPERIMENTS
           </span>
           <span style={{ flex: 1 }} />
-          <span style={chip}>sort: closing soon ▾</span>
+          <span style={chip}>sort: newest ▾</span>
           <span style={chip}>filter ▾</span>
         </div>
 
